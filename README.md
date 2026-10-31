@@ -2,6 +2,8 @@
 > **Problem 04 · Computer Vision · Hacktoberfest Hack Day Lucknow**  
 > An edge-optimized, offline triage system for soybean leaf disease classification under field-visit distribution shift.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Shreyansh00987/Soy-Leaf-Doctor)
+
 ---
 
 ## Problem understanding
