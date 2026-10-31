@@ -122,6 +122,10 @@ async def triage(file: UploadFile = File(...), lang: str = Form("en")):
 
     image_bytes = await file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    # Downscale large screenshots or 4K photos to max 800px to strictly prevent OOM spikes on cloud free tiers
+    if max(image.size) > 800:
+        image.thumbnail((800, 800), Image.Resampling.BILINEAR)
+
     quality = check_image_quality(image)
 
     tensor = TRANSFORM(image).unsqueeze(0).to(DEVICE)
@@ -135,6 +139,9 @@ async def triage(file: UploadFile = File(...), lang: str = Form("en")):
     heatmap = grad_cam.generate_heatmap(cam_tensor, target_class_idx=CLASSES.index(triage_res.label))
     blended = apply_heatmap_to_image(image, heatmap, alpha=0.45)
     cam_base64 = image_to_base64(blended)
+
+    del tensor, cam_tensor, heatmap, blended
+    gc.collect()
 
     return {
         "quality": {

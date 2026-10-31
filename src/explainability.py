@@ -90,14 +90,25 @@ def apply_heatmap_to_image(
     original_image: Image.Image,
     heatmap: np.ndarray,
     alpha: float = 0.45,
+    max_dim: int = 512,
 ) -> Image.Image:
     """
     Overlays normalized heatmap [0, 1] onto original PIL image using a custom colormap.
+    Safely downscales large inputs to max_dim to maintain low memory profile (<10 MB).
     """
     if original_image.mode != "RGB":
         original_image = original_image.convert("RGB")
 
-    width, height = original_image.size
+    # Downscale large screenshots/photos to max_dim to eliminate OOM spikes
+    w, h = original_image.size
+    if max(w, h) > max_dim:
+        scale = max_dim / float(max(w, h))
+        target_size = (max(1, int(w * scale)), max(1, int(h * scale)))
+        target_image = original_image.resize(target_size, Image.Resampling.BILINEAR)
+    else:
+        target_image = original_image
+
+    width, height = target_image.size
     heatmap_img = Image.fromarray((heatmap * 255.0).astype(np.uint8)).resize(
         (width, height), Image.Resampling.BILINEAR
     )
@@ -109,7 +120,7 @@ def apply_heatmap_to_image(
     b = np.clip(1.5 - np.abs(2.0 * h_arr - 0.0) * 2.0, 0.0, 1.0)
     color_cam = np.stack([r, g, b], axis=-1) * 255.0
 
-    orig_arr = np.array(original_image, dtype=np.float32)
+    orig_arr = np.array(target_image, dtype=np.float32)
     blended = (1.0 - alpha) * orig_arr + alpha * color_cam
     blended = np.clip(blended, 0, 255).astype(np.uint8)
 
@@ -117,7 +128,10 @@ def apply_heatmap_to_image(
 
 
 def image_to_base64(image: Image.Image) -> str:
-    """Encodes PIL image to Base64 PNG string for web rendering."""
+    """Encodes PIL image to Base64 JPEG string for ultra-fast, memory-safe web rendering."""
+    if image.mode != "RGB":
+        image = image.convert("RGB")
     buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    image.save(buffered, format="JPEG", quality=85, optimize=True)
+    b64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return f"data:image/jpeg;base64,{b64_str}"

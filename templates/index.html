@@ -853,7 +853,8 @@
 
             // Images
             document.getElementById('origLeaf').src = document.getElementById('imagePreview').src;
-            document.getElementById('camHeatmap').src = data.cam_base64;
+            const camSrc = (data.cam_base64 && data.cam_base64.startsWith('data:')) ? data.cam_base64 : ('data:image/jpeg;base64,' + (data.cam_base64 || ''));
+            document.getElementById('camHeatmap').src = camSrc;
 
             // Advisory
             const adv = data.advisory;
