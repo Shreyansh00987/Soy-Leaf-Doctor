@@ -170,8 +170,10 @@ Then open your browser at:
 
 ## 👥 Team
 
-- **Rajan Mishra** ([@aiwithrajan](https://github.com/aiwithrajan)) — **Team Lead**
-- **Shreyansh Agrahari** ([@Shreyansh00987](https://github.com/Shreyansh00987)) — **Lead Architecture, ML Pipeline & Full-Stack Engineering**
+- **Rajan Mishra** ([@aiwithrajan](https://github.com/aiwithrajan)) — **Team Lead****Lead Architecture, ML Pipeline & Full-Stack Engineering**
+
+- **Shreyansh Agrahari** ([@Shreyansh00987](https://github.com/Shreyansh00987)) — **frontend and research analysis**
+- **Ayush Gupta** ** research analysis and handle dataset**
 
 ---
 
