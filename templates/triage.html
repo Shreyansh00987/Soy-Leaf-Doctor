@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soy Leaf Doctor (HARITVA) | Live Diagnostic Portal</title>
+    <link rel="icon" href="/static/assets/agri_logo.svg" type="image/svg+xml">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/style.css">
+
+    <style>
+        .triage-hero {
+            background: linear-gradient(135deg, #01496d 0%, #002b40 100%);
+            padding: 40px 20px 60px 20px;
+            color: #fff;
+            text-align: center;
+            border-bottom-left-radius: 36px;
+            border-bottom-right-radius: 36px;
+            box-shadow: 0 10px 30px rgba(1, 73, 109, 0.2);
+        }
+        .triage-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .nav-tabs-custom {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: -24px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 10;
+        }
+        .tab-btn {
+            background: #fff;
+            border: 2px solid #e1e8ed;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            color: #01496d;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background: #91bd09;
+            color: #fff;
+            border-color: #91bd09;
+            box-shadow: 0 6px 20px rgba(145, 189, 9, 0.4);
+            transform: translateY(-2px);
+        }
+        .drop-zone {
+            border: 2px dashed #91bd09;
+            background: #f7faf5;
+            border-radius: 16px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .drop-zone:hover {
+            background: #edf7e7;
+            border-color: #7ba207;
+        }
+        .lang-pill {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 6px;
+            transition: all 0.2s ease;
+        }
+        .lang-pill.active {
+            background: #91bd09;
+            border-color: #91bd09;
+            color: #fff;
+        }
+        .result-box {
+            display: none;
+            margin-top: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .badge-status {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-pass { background: #e3f7df; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .badge-warn { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+        .prob-bar {
+            height: 10px;
+            border-radius: 5px;
+            background: #eef2f5;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .prob-fill {
+            height: 100%;
+            background: #91bd09;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body class="agri-page-frontpage" style="background: #f8fafc;">
+
+    <!-- Main Container -->
+    <div class="agri-container-main">
+        
+        <!-- Header / Navbar -->
+        <header>
+            <nav class="agri-nav navbar navbar-expand-lg static-top" style="background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div class="container d-flex align-items-center justify-content-between">
+                    <a class="navbar-brand d-flex align-items-center" href="/">
+                        <img width="128" height="40" src="/static/assets/agri_logo.svg" alt="HARITVA Logo">
+                        <span style="font-size: 16px; font-weight: 800; color: #01496d; margin-left: 8px;">HARITVA</span>
+                    </a>
+
+                    <div class="d-flex align-items-center">
+                        <a href="/" class="agri-btn mr-3 d-none d-sm-inline-block" style="background: #eef3f6; color: #01496d !important; font-weight: 700; border-radius: 20px; padding: 6px 16px;">
+                            ← Overview
+                        </a>
+                        <div class="d-flex align-items-center bg-dark p-1 rounded-pill" style="background: rgba(1, 73, 109, 0.08) !important;">
+                            <span class="lang-pill active" onclick="setLang('en')" id="btn-en">English</span>
+                            <span class="lang-pill" onclick="setLang('hi')" id="btn-hi">हिंदी</span>
+                            <span class="lang-pill" onclick="setLang('mr')" id="btn-mr">मराठी</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Hero Header -->
+        <div class="triage-hero">
+            <div class="container">
+                <span class="haritva-badge" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.4);">
+                    Edge AI Diagnostic Portal
+                </span>
+                <h1 id="title-main" style="font-size: 34px; font-weight: 800; margin: 10px 0;">
+                    Soy Leaf Health & Triage Doctor
+                </h1>
+                <p id="sub-main" style="font-size: 16px; opacity: 0.85; max-width: 650px; margin: 0 auto;">
+                    Instant foliar diagnosis, 90% split-conformal risk coverage guarantee, and explainable Grad-CAM heatmaps for soybean farmers.
+                </p>
+            </div>
+        </div>
+
+        <!-- Tab Selector -->
+        <div class="container">
+            <div class="nav-tabs-custom">
+                <button class="tab-btn active" id="tab-photo-btn" onclick="switchTab('photo')">
+                    📸 <span id="label-tab-photo">Single Leaf Photo</span>
+                </button>
+                <button class="tab-btn" id="tab-video-btn" onclick="switchTab('video')">
+                    🎥 <span id="label-tab-video">Canopy Video Scan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Workspace Container -->
+        <div class="container" style="max-width: 900px; padding-bottom: 60px;">
+            
+            <!-- TAB 1: PHOTO TRIAGE -->
+            <div id="tab-photo" class="triage-card">
+                <h3 id="photo-heading" style="font-size: 20px; font-weight: 800; color: #01496d; margin-bottom: 6px;">
+                    Upload Soybean Leaf Photograph
+                </h3>
+                <p id="photo-desc" style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    Take a clear photo of the infected or healthy leaf outdoors or select a field image.
+                </p>
+
+                <!-- Dropzone -->
+                <div class="drop-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
+                    <img src="/static/assets/magnify-glass.png" width="48" height="48" style="opacity: 0.7; margin-bottom: 10px;">
+                    <h5 id="drop-text" style="color: #01496d; font-weight: 700;">Drag & Drop Leaf Image Here or Click to Browse</h5>
+                    <p id="drop-subtext" style="color: #777; font-size: 13px; margin: 0;">Supports JPG, JPEG, PNG, WEBP (Mobile camera supported)</p>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this.files[0])">
+                </div>
+
+                <!-- Preview Area -->
+                <div id="previewArea" style="display: none; margin-top: 20px; text-align: center;">
+                    <img id="imagePreview" style="max-height: 240px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 16px;">
+                    <div>
+                        <button class="agri-btn" onclick="runInference()" id="btn-analyze" style="background: #91bd09; color: #fff; font-weight: 700; border-radius: 24px; padding: 10px 30px; font-size: 16px;">
+                            ⚡ Run Leaf Diagnosis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Results Area -->
+                <div id="resultBox" class="result-box">
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 28px 0;">
+
+                    <!-- Quality Gate Banner -->
+                    <div id="qualityBanner" style="padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <span id="qualityBadge" class="badge-status">Checking...</span>
+                            <span id="qualityText" style="font-size: 14px; font-weight: 600; margin-left: 10px; color: #333;"></span>
+                        </div>
+                        <div id="qualityScores" style="font-size: 12px; color: #666;"></div>
+                    </div>
+
+                    <!-- Diagnosis Headline -->
+                    <div style="background: #f7faf5; border-left: 5px solid #91bd09; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                        <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #666;" id="pred-header">
+                            Primary Diagnosis
+                        </div>
+                        <div id="predLabel" style="font-size: 26px; font-weight: 900; color: #01496d; margin: 4px 0;"></div>
+                        <div id="conformalSet" style="font-size: 14px; color: #555; margin-top: 6px;"></div>
+                    </div>
+
+                    <!-- Visual Side by Side Heatmap -->
+                    <div class="row" style="margin-bottom: 24px;">
+                        <div class="col-12 col-md-6 text-center mb-3 mb-md-0">
+                            <h6 style="font-weight: 700; color: #01496d;">Original Leaf Photo</h6>
+                            <img id="origLeaf" style="width: 100%; max-height: 250px; object-fit: contain; border-radius: 12px; border: 1px solid #ddd;">
+                        </div>
+                        <div class="col-12 col-md-6 text-center">
+                            <h6 style="font-weight: 700; color: #01496d;">Grad-CAM Lesion Activation</h6>
+                            <img id="camHeatmap" style="width: 100%; max-height: 250px; object-fit: contain; border-radius: 12px; border: 1px solid #ddd;">
+                        </div>
+                    </div>
+
+                    <!-- Advisory Card -->
+                    <div style="background: #fff; border: 1px solid #e1e8ed; border-radius: 14px; padding: 22px; margin-bottom: 20px;">
+                        <h5 style="font-weight: 800; color: #01496d; margin-bottom: 12px;" id="adv-title">
+                            Agronomic Advisory & Treatment
+                        </h5>
+                        <div id="advContent" style="color: #444; line-height: 1.6; font-size: 15px;"></div>
+                    </div>
+
+                    <!-- Probability Bars -->
+                    <div style="background: #fafbfc; border-radius: 14px; padding: 18px;">
+                        <h6 style="font-weight: 700; color: #555; font-size: 13px; text-transform: uppercase; margin-bottom: 12px;">
+                            Full Multi-Class Probability Simplex
+                        </h6>
+                        <div id="probBars"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 2: FIELD VIDEO CANOPY SCAN -->
+            <div id="tab-video" class="triage-card" style="display: none;">
+                <h3 id="video-heading" style="font-size: 20px; font-weight: 800; color: #01496d; margin-bottom: 6px;">
+                    Field Video Canopy Scan (5-Second Row Walkthrough)
+                </h3>
+                <p id="video-desc" style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    Upload a video taken while walking between soybean crop rows. System extracts keyframes, performs entropy-weighted temporal aggregation, and generates field health distribution.
+                </p>
+
+                <div class="drop-zone" onclick="document.getElementById('videoInput').click()" id="videoDropZone">
+                    <img src="/static/assets/btn-icon-play.png" width="48" height="48" style="opacity: 0.7; margin-bottom: 10px;">
+                    <h5 id="vdrop-text" style="color: #01496d; font-weight: 700;">Drag & Drop Field Video Here or Click to Browse</h5>
+                    <p style="color: #777; font-size: 13px; margin: 0;">Supports MP4, WebM, MOV (Max 50 MB)</p>
+                    <input type="file" id="videoInput" accept="video/*" style="display: none;" onchange="handleVideoSelect(this.files[0])">
+                </div>
+
+                <div id="videoPreviewArea" style="display: none; margin-top: 20px; text-align: center;">
+                    <video id="videoPreview" controls style="max-height: 260px; max-width: 100%; border-radius: 12px; margin-bottom: 16px;"></video>
+                    <div>
+                        <button class="agri-btn" onclick="runVideoInference()" id="btn-analyze-video" style="background: #91bd09; color: #fff; font-weight: 700; border-radius: 24px; padding: 10px 30px; font-size: 16px;">
+                            ⚡ Run Canopy Temporal Scan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video Results Area -->
+                <div id="videoResultBox" class="result-box">
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 28px 0;">
+
+                    <div style="background: #f7faf5; border-left: 5px solid #01496d; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="font-weight: 800; color: #01496d; margin-bottom: 8px;">Plot Canopy Health Index</h4>
+                        <div id="canopySummary" style="font-size: 18px; font-weight: 700; color: #333;"></div>
+                        <div id="canopyStats" style="font-size: 14px; color: #666; margin-top: 6px;"></div>
+                    </div>
+
+                    <div id="keyframeGallery" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px;"></div>
+
+                    <div style="background: #fff; border: 1px solid #e1e8ed; border-radius: 14px; padding: 22px;">
+                        <h5 style="font-weight: 800; color: #01496d; margin-bottom: 12px;">Field-Wide Agronomic Action</h5>
+                        <div id="videoAdvContent" style="color: #444; line-height: 1.6; font-size: 15px;"></div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <div class="agri-footer agri-mw-80 agri-margin-auto" style="padding-top: 30px;">
+                <div class="container text-center" style="color: rgba(255,255,255,0.7); font-size: 13px;">
+                    Soy Leaf Doctor (HARITVA) · Hacktoberfest Hack Day Lucknow · Problem 04 (CV)<br>
+                    <a href="/" style="color: #91bd09; font-weight: 700; margin-top: 8px; display: inline-block;">← Back to Project Showcase</a>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Interactive Client Script -->
+    <script>
+        let currentLang = 'en';
+        let selectedFile = null;
+        let selectedVideoFile = null;
+
+        const i18n_ui = {
+            en: {
+                titleMain: "Soy Leaf Health & Triage Doctor",
+                subMain: "Instant foliar diagnosis, 90% split-conformal risk coverage guarantee, and explainable Grad-CAM heatmaps for soybean farmers.",
+                tabPhoto: "Single Leaf Photo",
+                tabVideo: "Canopy Video Scan",
+                photoHeading: "Upload Soybean Leaf Photograph",
+                photoDesc: "Take a clear photo of the infected or healthy leaf outdoors or select a field image.",
+                dropText: "Drag & Drop Leaf Image Here or Click to Browse",
+                analyzeBtn: "⚡ Run Leaf Diagnosis",
+                predHeader: "Primary Diagnosis",
+                advTitle: "Agronomic Advisory & Treatment",
+                videoHeading: "Field Video Canopy Scan (5-Second Row Walkthrough)",
+                videoDesc: "Upload a video taken while walking between soybean crop rows. System extracts keyframes and calculates canopy health.",
+                vdropText: "Drag & Drop Field Video Here or Click to Browse",
+                vanalyzeBtn: "⚡ Run Canopy Temporal Scan"
+            },
+            hi: {
+                titleMain: "सोयाबीन पत्ती स्वास्थ्य एवं निदान डॉक्टर",
+                subMain: "सोयाबीन किसानों के लिए त्वरित पत्ती रोग पहचान, 90% जोखिम कवरेज गारंटी और ग्रेड-कैम हीटमैप।",
+                tabPhoto: "एकल पत्ती फोटो",
+                tabVideo: "खेत वीडियो कैनोपी स्कैन",
+                photoHeading: "सोयाबीन पत्ती की फोटो अपलोड करें",
+                photoDesc: "खेत में रोगग्रस्त या स्वस्थ पत्ती की स्पष्ट फोटो लें या अपलोड करें।",
+                dropText: "पत्ती की फोटो यहाँ खींचें या चुनने के लिए क्लिक करें",
+                analyzeBtn: "⚡ पत्ती की जांच करें",
+                predHeader: "मुख्य निदान (बीमारी)",
+                advTitle: "कृषि परामर्श एवं उपचार (दवा छिड़काव)",
+                videoHeading: "खेत वीडियो कैनोपी स्कैन (कतार में चलते हुए)",
+                videoDesc: "खेत में कतारों के बीच चलते हुए 5 सेकंड का वीडियो अपलोड करें। सिस्टम खेत का समग्र स्वास्थ्य निकालेगा।",
+                vdropText: "खेत का वीडियो यहाँ खींचें या चुनने के लिए क्लिक करें",
+                vanalyzeBtn: "⚡ खेत कैनोपी स्कैन चलाएं"
+            },
+            mr: {
+                titleMain: "सोयाबीन पान आरोग्य आणि निदान डॉक्टर",
+                subMain: "सोयाबीन शेतकऱ्यांसाठी त्वरित रोग ओळख, 90% जोखीम हमी आणि ग्रॅड-कॅम हीटमॅप.",
+                tabPhoto: "एका पानाचा फोटो",
+                tabVideo: "शेत व्हिडिओ कॅनॉपी स्कॅन",
+                photoHeading: "सोयाबीन पानाचा फोटो अपलोड करा",
+                photoDesc: "रोगट किंवा निरोगी पानाचा स्पष्ट फोटो घ्या किंवा निवडा.",
+                dropText: "पानाचा फोटो येथे टाका किंवा निवडण्यासाठी क्लिक करा",
+                analyzeBtn: "⚡ पानाची तपासणी करा",
+                predHeader: "मुख्य निदान (रोग)",
+                advTitle: "कृषी सल्ला आणि फवारणी उपचार",
+                videoHeading: "शेत व्हिडिओ कॅनॉपी स्कॅन (ओळीत चालताना)",
+                videoDesc: "सोयाबीनच्या ओळीत चालताना 5 सेकंदांचा व्हिडिओ अपलोड करा.",
+                vdropText: "शेताचा व्हिडिओ येथे टाका किंवा निवडण्यासाठी क्लिक करा",
+                vanalyzeBtn: "⚡ शेत कॅनॉपी स्कॅन चालवा"
+            }
+        };
+
+        function setLang(lang) {
+            currentLang = lang;
+            ['en', 'hi', 'mr'].forEach(l => {
+                document.getElementById('btn-' + l).classList.toggle('active', l === lang);
+            });
+            const t = i18n_ui[lang];
+            document.getElementById('title-main').innerText = t.titleMain;
+            document.getElementById('sub-main').innerText = t.subMain;
+            document.getElementById('label-tab-photo').innerText = t.tabPhoto;
+            document.getElementById('label-tab-video').innerText = t.tabVideo;
+            document.getElementById('photo-heading').innerText = t.photoHeading;
+            document.getElementById('photo-desc').innerText = t.photoDesc;
+            document.getElementById('drop-text').innerText = t.dropText;
+            document.getElementById('btn-analyze').innerText = t.analyzeBtn;
+            document.getElementById('pred-header').innerText = t.predHeader;
+            document.getElementById('adv-title').innerText = t.advTitle;
+            document.getElementById('video-heading').innerText = t.videoHeading;
+            document.getElementById('video-desc').innerText = t.videoDesc;
+            document.getElementById('vdrop-text').innerText = t.vdropText;
+            document.getElementById('btn-analyze-video').innerText = t.vanalyzeBtn;
+
+            // Re-run inference if file is already loaded
+            if (selectedFile && document.getElementById('resultBox').style.display === 'block') {
+                runInference();
+            }
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-photo').style.display = tab === 'photo' ? 'block' : 'none';
+            document.getElementById('tab-video').style.display = tab === 'video' ? 'block' : 'none';
+            document.getElementById('tab-photo-btn').classList.toggle('active', tab === 'photo');
+            document.getElementById('tab-video-btn').classList.toggle('active', tab === 'video');
+        }
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('previewArea').style.display = 'block';
+                document.getElementById('resultBox').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleVideoSelect(file) {
+            if (!file) return;
+            selectedVideoFile = file;
+            const videoUrl = URL.createObjectURL(file);
+            const videoElem = document.getElementById('videoPreview');
+            videoElem.src = videoUrl;
+            document.getElementById('videoPreviewArea').style.display = 'block';
+            document.getElementById('videoResultBox').style.display = 'none';
+        }
+
+        async function runInference() {
+            if (!selectedFile) return;
+            const btn = document.getElementById('btn-analyze');
+            btn.innerText = "⏳ Analyzing with MobileNetV3...";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('lang', currentLang);
+
+            try {
+                const res = await fetch('/api/triage', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                displayResults(data);
+            } catch (err) {
+                alert("Inference Error: " + err);
+            } finally {
+                btn.innerText = i18n_ui[currentLang].analyzeBtn;
+                btn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('resultBox').style.display = 'block';
+
+            // Quality
+            const qBanner = document.getElementById('qualityBanner');
+            const qBadge = document.getElementById('qualityBadge');
+            const qText = document.getElementById('qualityText');
+            const qScores = document.getElementById('qualityScores');
+
+            if (data.quality.passed) {
+                qBanner.style.background = '#e8f5e9';
+                qBadge.className = 'badge-status badge-pass';
+                qBadge.innerText = 'PASS';
+                qText.innerText = currentLang === 'hi' ? 'फोटो गुणवत्ता उत्तम है' : currentLang === 'mr' ? 'फोटो गुणवत्ता उत्तम आहे' : 'Optical Quality Gate Passed';
+            } else {
+                qBanner.style.background = '#fff3e0';
+                qBadge.className = 'badge-status badge-warn';
+                qBadge.innerText = 'WARNING';
+                qText.innerText = data.quality.recommendation;
+            }
+            qScores.innerText = `Blur: ${data.quality.blur_score.toFixed(1)} | Light: ${data.quality.brightness.toFixed(1)}`;
+
+            // Diagnosis
+            document.getElementById('predLabel').innerText = data.triage.label.replace(/_/g, ' ');
+            document.getElementById('conformalSet').innerHTML = `<strong>Conformal Set (|C|=${data.triage.set_size}):</strong> [${data.triage.prediction_set.join(', ')}] <span style="background:#91bd09; color:#fff; border-radius:10px; padding:2px 8px; font-size:11px; margin-left:6px;">90% Statistical Coverage</span>`;
+
+            // Images
+            document.getElementById('origLeaf').src = document.getElementById('imagePreview').src;
+            document.getElementById('camHeatmap').src = data.cam_base64;
+
+            // Advisory
+            const adv = data.advisory;
+            document.getElementById('advContent').innerHTML = `
+                <div style="margin-bottom: 8px;"><strong>${currentLang === 'hi' ? 'रोग' : currentLang === 'mr' ? 'रोग' : 'Condition'}:</strong> ${adv.name}</div>
+                <div style="margin-bottom: 8px;"><strong>${currentLang === 'hi' ? 'दवा / उपचार' : currentLang === 'mr' ? 'औषध / उपचार' : 'Chemical / Bio Treatment'}:</strong> <span style="color:#d32f2f; font-weight:700;">${adv.treatment}</span></div>
+                <div style="margin-bottom: 8px;"><strong>${currentLang === 'hi' ? 'मात्रा (डोज़)' : currentLang === 'mr' ? 'प्रमाण (डोस)' : 'Recommended Dosage'}:</strong> ${adv.dosage}</div>
+                <div><strong>${currentLang === 'hi' ? 'रोकथाम' : currentLang === 'mr' ? 'प्रतिबंधात्मक उपाय' : 'Cultural Prevention'}:</strong> ${adv.prevention}</div>
+            `;
+
+            // Probability Bars
+            const probs = data.triage.probabilities;
+            let probHtml = '';
+            for (const [cls, p] of Object.entries(probs)) {
+                const pct = (p * 100).toFixed(1);
+                probHtml += `
+                    <div style="margin-bottom: 8px;">
+                        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#333;">
+                            <span>${cls.replace(/_/g, ' ')}</span>
+                            <span>${pct}%</span>
+                        </div>
+                        <div class="prob-bar">
+                            <div class="prob-fill" style="width: ${pct}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('probBars').innerHTML = probHtml;
+
+            // Scroll to results
+            document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function runVideoInference() {
+            if (!selectedVideoFile) return;
+            const btn = document.getElementById('btn-analyze-video');
+            btn.innerText = "⏳ Extracting Keyframes & Aggregating...";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', selectedVideoFile);
+            formData.append('lang', currentLang);
+
+            try {
+                const res = await fetch('/api/triage-video', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                displayVideoResults(data);
+            } catch (err) {
+                alert("Video Inference Error: " + err);
+            } finally {
+                btn.innerText = i18n_ui[currentLang].vanalyzeBtn;
+                btn.disabled = false;
+            }
+        }
+
+        function displayVideoResults(data) {
+            document.getElementById('videoResultBox').style.display = 'block';
+
+            document.getElementById('canopySummary').innerText = `Primary Condition: ${data.aggregated_condition.replace(/_/g, ' ')} (${(data.confidence * 100).toFixed(1)}% Confidence)`;
+            document.getElementById('canopyStats').innerText = `Keyframes Analyzed: ${data.frames_analyzed} | Health Index: ${(data.health_index * 100).toFixed(1)}%`;
+
+            let galleryHtml = '';
+            if (data.keyframes) {
+                data.keyframes.forEach(kf => {
+                    galleryHtml += `
+                        <div style="min-width: 140px; text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 6px; background:#fff;">
+                            <img src="${kf.base64}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #01496d; margin-top: 4px;">${kf.label.replace(/_/g, ' ')}</div>
+                            <div style="font-size: 10px; color: #666;">t=${kf.timestamp_sec.toFixed(1)}s</div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('keyframeGallery').innerHTML = galleryHtml;
+
+            const adv = data.advisory;
+            document.getElementById('videoAdvContent').innerHTML = `
+                <div style="margin-bottom: 8px;"><strong>${currentLang === 'hi' ? 'दवा / उपचार' : currentLang === 'mr' ? 'औषध / उपचार' : 'Chemical / Bio Treatment'}:</strong> <span style="color:#d32f2f; font-weight:700;">${adv.treatment}</span></div>
+                <div style="margin-bottom: 8px;"><strong>${currentLang === 'hi' ? 'मात्रा (डोज़)' : currentLang === 'mr' ? 'प्रमाण (डोस)' : 'Recommended Dosage'}:</strong> ${adv.dosage}</div>
+                <div><strong>${currentLang === 'hi' ? 'रोकथाम' : currentLang === 'mr' ? 'प्रतिबंधात्मक उपाय' : 'Cultural Prevention'}:</strong> ${adv.prevention}</div>
+            `;
+
+            document.getElementById('videoResultBox').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
