@@ -1,6 +1,7 @@
 """
 FastAPI Triage Application and Mobile Web Interface for Soy Leaf Doctor (HARITVA).
 Features:
+- Dual Input: High-Resolution Photo Upload OR Field Video Canopy Scan (MP4/WebM)
 - Trilingual UI: English, Hindi (हिंदी), and Marathi (मराठी)
 - Pre-inference Optical Quality Gate (Blur & Exposure verification)
 - Split-conformal Risk-Controlled Triage (|C|=1, 2, >=3)
@@ -25,12 +26,10 @@ from src.i18n import get_advisory
 
 app = FastAPI(title="Soy Leaf Doctor (HARITVA)", version="1.0.0")
 
-# Global model state
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "models/mobilenet_v3.pt"
 CONFORMAL_PATH = "models/conformal.json"
 
-# Load calibration
 Q_HAT = 0.85
 if os.path.exists(CONFORMAL_PATH):
     try:
@@ -146,7 +145,7 @@ HTML_TEMPLATE = """
     .upload-box {
       border: 2px dashed #CBD5E1;
       border-radius: 12px;
-      padding: 28px 16px;
+      padding: 26px 16px;
       text-align: center;
       cursor: pointer;
       background: #F8FAFC;
@@ -184,10 +183,9 @@ HTML_TEMPLATE = """
       margin: 16px 0;
       text-align: center;
     }
-    .preview-img {
+    .preview-img, .preview-video {
       max-width: 100%;
-      height: 220px;
-      object-fit: contain;
+      max-height: 240px;
       border-radius: 8px;
       border: 1px solid var(--border);
     }
@@ -232,22 +230,39 @@ HTML_TEMPLATE = """
     .advisory-row { margin-top: 10px; font-size: 13px; }
     .advisory-row b { display: block; color: var(--text-muted); font-size: 11px; text-transform: uppercase; margin-bottom: 2px; }
 
-    .tabs { display: flex; gap: 8px; margin-top: 16px; }
     .tab-btn {
-      flex: 1;
-      padding: 8px;
-      background: #F1F5F9;
+      width: 100%;
+      padding: 10px;
+      background: #0F172A;
+      color: white;
       border: none;
-      border-radius: 6px;
-      font-size: 12px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 14px;
     }
-    .tab-btn.active { background: var(--text); color: white; }
+    .tab-btn:hover { background: #1E293B; }
 
     #camContainer { display: none; margin-top: 12px; text-align: center; }
     #camImg { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
     .spinner { display: none; text-align: center; padding: 20px; font-size: 14px; color: var(--text-muted); }
+
+    .video-frames-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .frame-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      font-size: 11px;
+      text-align: center;
+      background: #F8FAFC;
+    }
+    .frame-card img { width: 100%; height: 75px; object-fit: cover; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -262,38 +277,43 @@ HTML_TEMPLATE = """
         </div>
       </div>
       <h1>Soy Leaf Doctor · हरित्वा</h1>
-      <p class="sub" id="hdrSub">सोयाबीन पत्ती रोग पहचान और त्वरित कृषि परामर्श प्रणाली</p>
+      <p class="sub" id="hdrSub">सोयाबीन पत्ती व फसल वीडियो रोग पहचान प्रणाली</p>
     </header>
 
     <div class="content">
       <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-        <div class="upload-icon">📷</div>
-        <div class="upload-text" id="uploadTitle">पत्ती का फोटो अपलोड करें या कैमरा खोलें</div>
-        <div class="upload-sub">384×384 JPEG / PNG समर्थित</div>
-        <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleFile(event)">
+        <div class="upload-icon">📷 🎥</div>
+        <div class="upload-text" id="uploadTitle">पत्ती का फोटो या खेत का वीडियो अपलोड करें</div>
+        <div class="upload-sub" id="uploadSub">JPEG, PNG, MP4, WebM (Live Camera & Field Video)</div>
+        <input type="file" id="fileInput" accept="image/*,video/*" capture="environment" onchange="handleFile(event)">
       </div>
 
       <div class="preview-section" id="previewSection">
-        <img id="previewImg" class="preview-img" alt="Leaf Preview">
+        <img id="previewImg" class="preview-img" style="display:none;" alt="Leaf Photo">
+        <video id="previewVideo" class="preview-video" style="display:none;" controls playsinline></video>
       </div>
 
-      <button class="btn" id="analyzeBtn" onclick="analyzeLeaf()" disabled>निरीक्षण करें (Analyze)</button>
-      <div class="spinner" id="spinner">मॉडल प्रक्रियाधीन है... कृपया प्रतीक्षा करें...</div>
+      <button class="btn" id="analyzeBtn" onclick="startAnalysis()" disabled>निरीक्षण करें (Analyze)</button>
+      <div class="spinner" id="spinner">प्रक्रियाधीन है... कृपया प्रतीक्षा करें...</div>
 
       <div id="resultContainer"></div>
     </div>
   </div>
 
+  <canvas id="hiddenCanvas" style="display:none;"></canvas>
+
   <script>
     let currentLang = 'hi';
     let selectedFile = null;
+    let isVideo = false;
 
     const UI_TEXT = {
       en: {
-        sub: "Soybean Foliar Disease Triage & Rapid Agronomic Advisory",
-        upload: "Upload Leaf Photo or Open Camera",
-        btn: "Analyze Leaf",
-        analyzing: "Analyzing leaf photo... please wait...",
+        sub: "Soybean Leaf & Video Canopy Diagnostic Triage System",
+        upload: "Upload Leaf Photo or Field Video",
+        subUpload: "JPEG, PNG, MP4, WebM (Live Camera & Field Video)",
+        btn: "Analyze (Photo or Video)",
+        analyzing: "Analyzing media... inspecting canopy frames...",
         confBadge: "CONFIDENT DIAGNOSIS",
         ambigBadge: "AMBIGUOUS / DIFFERENTIAL DIAGNOSIS",
         escBadge: "HIGH UNCERTAINTY / ESCALATE TO PATHOLOGIST",
@@ -301,13 +321,15 @@ HTML_TEMPLATE = """
         organic: "Organic / Bio-control Advisory",
         chemical: "Emergency Chemical Treatment",
         symptoms: "Characteristic Symptoms",
-        gradCamBtn: "Show Lesion Saliency Heatmap (Grad-CAM)"
+        gradCamBtn: "Show Lesion Saliency Heatmap (Grad-CAM)",
+        videoSummary: "Field Video Canopy Analysis Summary"
       },
       hi: {
-        sub: "सोयाबीन पत्ती रोग पहचान और त्वरित कृषि परामर्श प्रणाली",
-        upload: "पत्ती का फोटो अपलोड करें या कैमरा खोलें",
+        sub: "सोयाबीन पत्ती व फसल वीडियो रोग पहचान प्रणाली",
+        upload: "पत्ती का फोटो या खेत का वीडियो अपलोड करें",
+        subUpload: "JPEG, PNG, MP4, WebM (कैमरा या फील्ड वीडियो)",
         btn: "निरीक्षण करें (Analyze)",
-        analyzing: "मॉडल प्रक्रियाधीन है... कृपया प्रतीक्षा करें...",
+        analyzing: "प्रक्रियाधीन है... वीडियो फ्रेम्स का विश्लेषण हो रहा है...",
         confBadge: "सटीक निदान (CONFIDENT)",
         ambigBadge: "संदिग्ध स्थिति (2 संभावित रोग)",
         escBadge: "अनिश्चित स्थिति / विशेषज्ञ को भेजें",
@@ -315,13 +337,15 @@ HTML_TEMPLATE = """
         organic: "जैविक / देशी उपचार",
         chemical: "आपातकालीन रासायनिक छिड़काव",
         symptoms: "रोग के मुख्य लक्षण",
-        gradCamBtn: "रोगग्रस्त भाग का हीटमैप देखें (Grad-CAM)"
+        gradCamBtn: "रोगग्रस्त भाग का हीटमैप देखें (Grad-CAM)",
+        videoSummary: "खेत वीडियो कैनोपी निरीक्षण परिणाम"
       },
       mr: {
-        sub: "सोयाबीन पान रोग निदान आणि कृषी सल्लागार प्रणाली",
-        upload: "पानाचा फोटो अपलोड करा किंवा कॅमेरा उघडा",
+        sub: "सोयाबीन पान व पीक व्हिडिओ रोग निदान प्रणाली",
+        upload: "पानाचा फोटो किंवा शेताचा व्हिडिओ अपलोड करा",
+        subUpload: "JPEG, PNG, MP4, WebM (कॅमेरा किंवा व्हिडिओ)",
         btn: "तपासा (Analyze)",
-        analyzing: "तपासणी सुरू आहे... कृपया प्रतीक्षा करा...",
+        analyzing: "तपासणी सुरू आहे... व्हिडिओ फ्रेम्स तपासत आहे...",
         confBadge: "निश्चित निदान (CONFIDENT)",
         ambigBadge: "संशयास्पद स्थिती (२ संभाव्य आजार)",
         escBadge: "अनिश्चित स्थिती / तज्ज्ञांकडे पाठवा",
@@ -329,7 +353,8 @@ HTML_TEMPLATE = """
         organic: "जैविक / घरगुती उपाय",
         chemical: "तातडीची रासायनिक फवारणी",
         symptoms: "रोगाची मुख्य लक्षणे",
-        gradCamBtn: "रोगग्रस्त भागाचा हीटमॅप पहा (Grad-CAM)"
+        gradCamBtn: "रोगग्रस्त भागाचा हीटमॅप पहा (Grad-CAM)",
+        videoSummary: "शेतातील व्हिडिओ तपासणी निकाल"
       }
     };
 
@@ -341,6 +366,7 @@ HTML_TEMPLATE = """
       const t = UI_TEXT[lang];
       document.getElementById('hdrSub').innerText = t.sub;
       document.getElementById('uploadTitle').innerText = t.upload;
+      document.getElementById('uploadSub').innerText = t.subUpload;
       document.getElementById('analyzeBtn').innerText = t.btn;
       document.getElementById('spinner').innerText = t.analyzing;
     }
@@ -348,17 +374,30 @@ HTML_TEMPLATE = """
     function handleFile(e) {
       if (e.target.files && e.target.files[0]) {
         selectedFile = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          document.getElementById('previewImg').src = evt.target.result;
-          document.getElementById('previewSection').style.display = 'block';
-          document.getElementById('analyzeBtn').disabled = false;
-        };
-        reader.readAsDataURL(selectedFile);
+        isVideo = selectedFile.type.startsWith('video');
+
+        const pImg = document.getElementById('previewImg');
+        const pVid = document.getElementById('previewVideo');
+        const pSec = document.getElementById('previewSection');
+
+        pSec.style.display = 'block';
+        document.getElementById('analyzeBtn').disabled = false;
+
+        if (isVideo) {
+          pImg.style.display = 'none';
+          pVid.style.display = 'inline-block';
+          pVid.src = URL.createObjectURL(selectedFile);
+        } else {
+          pVid.style.display = 'none';
+          pImg.style.display = 'inline-block';
+          const reader = new FileReader();
+          reader.onload = (evt) => { pImg.src = evt.target.result; };
+          reader.readAsDataURL(selectedFile);
+        }
       }
     }
 
-    async function analyzeLeaf() {
+    async function startAnalysis() {
       if (!selectedFile) return;
 
       const btn = document.getElementById('analyzeBtn');
@@ -369,20 +408,64 @@ HTML_TEMPLATE = """
       spinner.style.display = 'block';
       resultDiv.innerHTML = '';
 
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('lang', currentLang);
-
       try {
-        const response = await fetch('/api/triage', { method: 'POST', body: formData });
-        const data = await response.json();
-        renderResult(data);
+        if (isVideo) {
+          await analyzeVideo();
+        } else {
+          await analyzeSingleImage(selectedFile);
+        }
       } catch (err) {
         resultDiv.innerHTML = `<div class="card urgent"><b>Error:</b> ${err.message}</div>`;
       } finally {
         btn.disabled = false;
         spinner.style.display = 'none';
       }
+    }
+
+    async function analyzeSingleImage(blob) {
+      const formData = new FormData();
+      formData.append('file', blob, 'leaf.jpg');
+      formData.append('lang', currentLang);
+
+      const resp = await fetch('/api/triage', { method: 'POST', body: formData });
+      const data = await resp.json();
+      renderResult(data);
+    }
+
+    async function analyzeVideo() {
+      const video = document.getElementById('previewVideo');
+      const canvas = document.getElementById('hiddenCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // Extract 3 representative keyframes at 20%, 50%, 80% duration
+      const duration = video.duration || 3.0;
+      const timestamps = [duration * 0.25, duration * 0.50, duration * 0.75];
+      const frameBlobs = [];
+
+      for (let t of timestamps) {
+        video.currentTime = t;
+        await new Promise(r => video.onseeked = r);
+
+        canvas.width = video.videoWidth || 384;
+        canvas.height = video.videoHeight || 384;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+        frameBlobs.push({ time: t.toFixed(1), blob: blob });
+      }
+
+      // Analyze each frame
+      const frameResults = [];
+      for (let f of frameBlobs) {
+        const formData = new FormData();
+        formData.append('file', f.blob, `frame_${f.time}s.jpg`);
+        formData.append('lang', currentLang);
+        const resp = await fetch('/api/triage', { method: 'POST', body: formData });
+        const res = await resp.json();
+        frameResults.push({ time: f.time, data: res });
+      }
+
+      renderVideoResults(frameResults);
     }
 
     function renderResult(data) {
@@ -393,8 +476,6 @@ HTML_TEMPLATE = """
       const adv = data.advisory;
 
       let html = '';
-
-      // Quality warning if failed
       if (!q.passed) {
         html += `
           <div class="card warning">
@@ -405,7 +486,6 @@ HTML_TEMPLATE = """
         `;
       }
 
-      // Triage status
       let cardClass = 'success';
       let badgeText = t.confBadge;
       if (tr.triage_state === 'AMBIGUOUS') {
@@ -440,12 +520,52 @@ HTML_TEMPLATE = """
             <div>🧪 ${adv.chemical}</div>
           </div>
 
-          <div style="margin-top:16px;">
-            <button class="tab-btn active" onclick="toggleCam()">${t.gradCamBtn}</button>
-          </div>
+          <button class="tab-btn" onclick="toggleCam()">${t.gradCamBtn}</button>
           <div id="camContainer">
             <img id="camImg" src="data:image/png;base64,${data.cam_base64}" alt="Grad-CAM Lesion Heatmap">
             <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Heatmap indicates foliar lesions that activated the model.</div>
+          </div>
+        </div>
+      `;
+
+      res.innerHTML = html;
+    }
+
+    function renderVideoResults(frameResults) {
+      const t = UI_TEXT[currentLang];
+      const res = document.getElementById('resultContainer');
+
+      // Pick dominant disease across sampled frames
+      const counts = {};
+      for (let f of frameResults) {
+        const lbl = f.data.triage.label;
+        counts[lbl] = (counts[lbl] || 0) + 1;
+      }
+      let dominant = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+      const repData = frameResults[0].data;
+
+      let html = `
+        <div class="card success">
+          <span class="triage-badge CONFIDENT">🎥 ${t.videoSummary}</span>
+          <h2 style="font-size:18px; margin-bottom:4px;">${repData.advisory.name}</h2>
+          <p style="font-size:12px; color:var(--text-muted);">Scanned ${frameResults.length} keyframes across video canopy stream.</p>
+          
+          <div class="video-frames-grid">
+            ${frameResults.map(f => `
+              <div class="frame-card">
+                <img src="data:image/png;base64,${f.data.cam_base64}" alt="Keyframe ${f.time}s">
+                <div style="font-weight:600; margin-top:4px;">${f.time}s: ${f.data.triage.label}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="advisory-row" style="color:#166534; margin-top:14px;">
+            <b>${t.organic}</b>
+            <div>🌱 ${repData.advisory.organic}</div>
+          </div>
+          <div class="advisory-row" style="color:#991B1B;">
+            <b>${t.chemical}</b>
+            <div>🧪 ${repData.advisory.chemical}</div>
           </div>
         </div>
       `;
@@ -476,6 +596,7 @@ def health():
         "model_loaded": os.path.exists(MODEL_PATH),
         "classes": CLASSES,
         "conformal_q_hat": Q_HAT,
+        "supports_video": True,
     }
 
 
@@ -483,24 +604,16 @@ def health():
 async def triage(file: UploadFile = File(...), lang: str = Form("hi")):
     model, grad_cam = get_model()
 
-    # Load image
     image = Image.open(file.file).convert("RGB")
-
-    # 1. Optical Quality Gate
     quality = check_image_quality(image)
 
-    # 2. Deep Learning Inference
     tensor = TRANSFORM(image).unsqueeze(0).to(DEVICE)
     with torch.no_grad():
         probs = model.predict_tta(tensor).squeeze().cpu().numpy()
 
-    # 3. Conformal Prediction Set
     triage_res = CALIBRATOR.predict(probs, CLASSES)
-
-    # 4. Multilingual Advisory
     advisory = get_advisory(triage_res.label, lang=lang)
 
-    # 5. Grad-CAM Saliency Map
     cam_tensor = TRANSFORM(image).unsqueeze(0).to(DEVICE)
     heatmap = grad_cam.generate_heatmap(cam_tensor, target_class_idx=CLASSES.index(triage_res.label))
     blended = apply_heatmap_to_image(image, heatmap, alpha=0.45)
