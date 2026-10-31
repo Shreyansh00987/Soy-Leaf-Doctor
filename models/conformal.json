@@ -1,6 +1,6 @@
 {
   "alpha": 0.1,
-  "q_hat": 0.9285,
+  "q_hat": 0.8683,
   "target_coverage": 0.9,
   "classes": [
     "Caterpillar_Semilooper_Pest",
@@ -10,7 +10,9 @@
     "Rust",
     "Spectoria_Brown_Spot"
   ],
-  "val_macro_f1": 0.5237,
+  "val_macro_f1": 0.7251,
+  "val_accuracy": 0.7476,
   "weights_file": "mobilenet_v3.pt",
-  "file_size_mb": 13.42
+  "file_size_mb": 13.42,
+  "trained_epochs": 5
 }

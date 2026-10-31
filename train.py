@@ -94,7 +94,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train Soy Leaf Doctor")
     parser.add_argument("--data-dir", type=str, default="data/p4-soy-leaf-health")
     parser.add_argument("--out", type=str, default="models")
-    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=5e-4)
     parser.add_argument("--seed", type=int, default=42)
