@@ -62,6 +62,11 @@ class GradCAM:
         cam = torch.sum(weighted_activations, dim=1, keepdim=True)
         cam = F.relu(cam)
 
+        # Clean up hooks and memory immediately to prevent OOM
+        self.gradients = None
+        self.activations = None
+        self.model.zero_grad(set_to_none=True)
+
         # Upsample to match input tensor resolution
         cam = F.interpolate(
             cam,
