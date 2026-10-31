@@ -640,5 +640,17 @@ async def triage(file: UploadFile = File(...), lang: str = Form("hi")):
     }
 
 
+@app.get("/health")
+def health_check():
+    """Health check endpoint for cloud load balancers and Render health probes."""
+    return {
+        "status": "healthy",
+        "service": "Soy Leaf Doctor (HARITVA)",
+        "model": "MobileNetV3-Large",
+        "version": "1.0.0",
+    }
+
+
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=False)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
