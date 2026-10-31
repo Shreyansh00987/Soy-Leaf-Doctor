@@ -71,20 +71,20 @@ def load_template(filename: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def index_page():
-    """Page 1: Project Showcase and Landing Page (Agrio Theme)."""
-    return HTMLResponse(load_template("project.html"))
+    """Single Unified Website: Showcase + Interactive Diagnostic Portal."""
+    return HTMLResponse(load_template("index.html"))
 
 
 @app.get("/project", response_class=HTMLResponse)
 def project_page_alias():
-    """Page 1 Alias: Project Showcase."""
-    return HTMLResponse(load_template("project.html"))
+    """Showcase Anchor Alias."""
+    return HTMLResponse(load_template("index.html"))
 
 
 @app.get("/triage", response_class=HTMLResponse)
 def triage_page():
-    """Page 2: Live Diagnostic & Triage Tool."""
-    return HTMLResponse(load_template("triage.html"))
+    """Direct link alias to Triage Portal on unified website."""
+    return HTMLResponse(load_template("index.html"))
 
 
 # ---------------- API ENDPOINTS ---------------- #
