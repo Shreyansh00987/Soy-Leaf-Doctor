@@ -1,0 +1,5 @@
+team: haritva-leaf-doctor
+problem: p4
+entry: "python predict.py --images {images} --output {output}"
+python: "3.11"
+train_cmd: "python train.py --data-dir {data_dir} --out models/"

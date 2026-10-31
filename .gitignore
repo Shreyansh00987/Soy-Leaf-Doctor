@@ -1,0 +1,27 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+.venv/
+
+# Challenge dataset files (Never commit raw dataset images to repo)
+data/
+data_repo/
+*.zip
+*.tar.gz
+train_labels.csv
+
+# System & IDE files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary outputs
+output/
+tmp/
+*.tmp
