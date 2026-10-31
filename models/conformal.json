@@ -1,0 +1,16 @@
+{
+  "alpha": 0.1,
+  "q_hat": 0.9285,
+  "target_coverage": 0.9,
+  "classes": [
+    "Caterpillar_Semilooper_Pest",
+    "Frog_Leaf_Eye",
+    "Healthy",
+    "Mosaic",
+    "Rust",
+    "Spectoria_Brown_Spot"
+  ],
+  "val_macro_f1": 0.5237,
+  "weights_file": "mobilenet_v3.pt",
+  "file_size_mb": 13.42
+}
