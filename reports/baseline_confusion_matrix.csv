@@ -1,0 +1,7 @@
+,Pred_Caterpillar_Semilooper_Pest,Pred_Frog_Leaf_Eye,Pred_Healthy,Pred_Mosaic,Pred_Rust,Pred_Spectoria_Brown_Spot
+True_Caterpillar_Semilooper_Pest,279,20,0,19,43,13
+True_Frog_Leaf_Eye,2,86,0,0,20,1
+True_Healthy,1,0,134,0,0,0
+True_Mosaic,32,1,0,350,47,11
+True_Rust,13,31,0,6,497,8
+True_Spectoria_Brown_Spot,4,16,0,3,31,116
