@@ -11,6 +11,7 @@ env/
 # Challenge dataset files (Never commit raw dataset images to repo)
 data/
 data_repo/
+test_benchmark/
 *.zip
 *.tar.gz
 train_labels.csv

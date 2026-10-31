@@ -163,6 +163,10 @@ def main():
 
     best_macro_f1 = 0.0
     best_weights_path = os.path.join(args.out, "mobilenet_v3.pt")
+    ep7_path = os.path.join(args.out, "mobilenet_v3_ep7.pt")
+    ep13_path = os.path.join(args.out, "mobilenet_v3_ep13.pt")
+    ep7_metrics = {"val_f1": 0.0, "val_acc": 0.0}
+    ep13_metrics = {"val_f1": 0.0, "val_acc": 0.0}
     start_time = time.time()
 
     print("\n--- Beginning Two-Stage Transfer Learning ---", file=sys.stderr)
@@ -176,6 +180,16 @@ def main():
             file=sys.stderr,
         )
 
+        if epoch == 7:
+            torch.save(model.state_dict(), ep7_path)
+            ep7_metrics = {"val_f1": val_f1, "val_acc": val_acc}
+            print(f">>> [CHECKPOINT] Saved Epoch 7 Model: Val Acc: {val_acc*100:.2f}%, Val Macro-F1: {val_f1:.4f}", file=sys.stderr)
+
+        if epoch == 13:
+            torch.save(model.state_dict(), ep13_path)
+            ep13_metrics = {"val_f1": val_f1, "val_acc": val_acc}
+            print(f">>> [CHECKPOINT] Saved Epoch 13 Model: Val Acc: {val_acc*100:.2f}%, Val Macro-F1: {val_f1:.4f}", file=sys.stderr)
+
         if val_f1 > best_macro_f1:
             best_macro_f1 = val_f1
             torch.save(model.state_dict(), best_weights_path)
@@ -183,9 +197,27 @@ def main():
     elapsed_min = (time.time() - start_time) / 60.0
     print(f"\nTraining completed in {elapsed_min:.2f} mins. Peak Val Macro-F1: {best_macro_f1:.4f}", file=sys.stderr)
 
-    # Load best checkpoint for conformal calibration
+    # Compare Epoch 7 vs Epoch 13 if both were reached
+    if os.path.exists(ep7_path) and os.path.exists(ep13_path):
+        print("\n" + "=" * 60, file=sys.stderr)
+        print("       EPOCH 7 vs EPOCH 13 COMPARISON REPORT", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print(f"Epoch 07 -> Val Acc: {ep7_metrics['val_acc']*100:.2f}% | Val Macro-F1: {ep7_metrics['val_f1']:.4f}", file=sys.stderr)
+        print(f"Epoch 13 -> Val Acc: {ep13_metrics['val_acc']*100:.2f}% | Val Macro-F1: {ep13_metrics['val_f1']:.4f}", file=sys.stderr)
+        if ep13_metrics["val_f1"] >= ep7_metrics["val_f1"]:
+            print(">>> WINNER: Epoch 13 performed better or equal! Selected Epoch 13.", file=sys.stderr)
+            winner_weights = ep13_path
+        else:
+            print(">>> WINNER: Epoch 7 performed better (Epoch 13 likely overfitted)! Selected Epoch 7.", file=sys.stderr)
+            winner_weights = ep7_path
+        print("=" * 60, file=sys.stderr)
+        # Deploy winning weights
+        import shutil
+        shutil.copy2(winner_weights, best_weights_path)
+
+    # Load winning checkpoint for conformal calibration
     model.load_state_dict(torch.load(best_weights_path, map_location=device))
-    _, _, best_probs, val_targets = evaluate(model, val_loader, device)
+    val_f1_win, val_acc_win, best_probs, val_targets = evaluate(model, val_loader, device)
 
     # Conformal Calibration (90% coverage)
     calibrator = ConformalCalibrator(alpha=0.10)
@@ -201,7 +233,8 @@ def main():
         "q_hat": round(q_hat, 4),
         "target_coverage": 0.90,
         "classes": CLASSES,
-        "val_macro_f1": round(best_macro_f1, 4),
+        "val_macro_f1": round(val_f1_win, 4),
+        "val_accuracy": round(val_acc_win, 4),
         "weights_file": "mobilenet_v3.pt",
         "file_size_mb": round(os.path.getsize(best_weights_path) / (1024 * 1024), 2),
     }
